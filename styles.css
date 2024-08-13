@@ -86,3 +86,34 @@ body {
         font-size: 1em;
     }
 }
+
+/* styles.css */
+
+#game-controls {
+    margin-top: 15px;
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+
+#game-controls button {
+    padding: 10px;
+    font-size: 1em;
+    font-weight: bold;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    background-color: #3498db;
+    color: #ecf0f1;
+    transition: background-color 0.3s ease;
+    width: 30%;
+}
+
+#game-controls button:hover {
+    background-color: #2980b9;
+}
+
+#game-controls button:disabled {
+    background-color: #7f8c8d;
+    cursor: not-allowed;
+}

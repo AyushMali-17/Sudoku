@@ -1,9 +1,16 @@
 // script.js (continued)
 document.addEventListener('DOMContentLoaded', () => {
     const sudokuGrid = document.getElementById('sudoku-grid');
+    const undoButton = document.getElementById('undo-button');
+    const redoButton = document.getElementById('redo-button');
+    const hintButton = document.getElementById('hint-button');
+
     let moveCount = 0;
     let timerInterval;
     const startTime = new Date();
+
+    const undoStack = [];
+    const redoStack = [];
 
     // Create the 9x9 grid elements
     for (let i = 0; i < 81; i++) {
@@ -16,11 +23,16 @@ document.addEventListener('DOMContentLoaded', () => {
         sudokuGrid.appendChild(cell);
     }
 
+    undoButton.addEventListener('click', undo);
+    redoButton.addEventListener('click', redo);
+    hintButton.addEventListener('click', provideHint);
+
     function handleInput(event) {
         const cell = event.target;
         const value = cell.textContent.trim();
 
-        // Basic validation: check if the value is a number between 1 and 9
+        saveState(undoStack);
+
         if (!/^[1-9]$/.test(value)) {
             cell.textContent = ''; // Clear invalid input
         } else {
@@ -30,6 +42,10 @@ document.addEventListener('DOMContentLoaded', () => {
             checkConflicts();
             checkSolution();
         }
+
+        redoStack.length = 0; // Clear redo stack on new input
+        updateButtonStates();
+        saveGameState();
     }
 
     function handleFocus(event) {
@@ -43,107 +59,96 @@ document.addEventListener('DOMContentLoaded', () => {
         clearHighlighting();
     }
 
-    function highlightSimilarNumbers(value) {
-        clearHighlighting();
+    function undo() {
+        if (undoStack.length > 0) {
+            saveState(redoStack);
+            const previousState = undoStack.pop();
+            restoreState(previousState);
+            updateButtonStates();
+            saveGameState();
+        }
+    }
+
+    function redo() {
+        if (redoStack.length > 0) {
+            saveState(undoStack);
+            const nextState = redoStack.pop();
+            restoreState(nextState);
+            updateButtonStates();
+            saveGameState();
+        }
+    }
+
+    function provideHint() {
         const cells = [...sudokuGrid.children];
-        cells.forEach(cell => {
-            if (cell.textContent.trim() === value) {
-                cell.style.backgroundColor = '#f39c12';
-                cell.style.color = '#ecf0f1';
-            }
+        const emptyCells = cells.filter(cell => cell.textContent.trim() === '');
+        if (emptyCells.length === 0) return;
+
+        const randomEmptyCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+        const correctValue = getCorrectValue(randomEmptyCell.dataset.index);
+        randomEmptyCell.textContent = correctValue;
+        randomEmptyCell.classList.add('initial'); // Mark it as a given value
+        randomEmptyCell.contentEditable = false;
+
+        moveCount++;
+        updateMoveCounter();
+        checkConflicts();
+        checkSolution();
+        saveGameState();
+    }
+
+    function saveState(stack) {
+        const state = [...sudokuGrid.children].map(cell => cell.textContent.trim());
+        stack.push(state);
+    }
+
+    function restoreState(state) {
+        [...sudokuGrid.children].forEach((cell, index) => {
+            cell.textContent = state[index];
         });
+        checkConflicts();
     }
 
-    function clearHighlighting() {
-        const cells = [...sudokuGrid.children];
-        cells.forEach(cell => {
-            if (!cell.classList.contains('initial')) {
-                cell.style.backgroundColor = '';
-                cell.style.color = '#2c3e50';
-            }
-        });
+    function updateButtonStates() {
+        undoButton.disabled = undoStack.length === 0;
+        redoButton.disabled = redoStack.length === 0;
     }
 
-    function checkConflicts() {
-        const cells = [...sudokuGrid.children];
-        const gridValues = cells.map(cell => cell.textContent.trim() || '0');
+    function saveGameState() {
+        const gameState = {
+            grid: [...sudokuGrid.children].map(cell => ({
+                value: cell.textContent.trim(),
+                editable: cell.contentEditable === "true",
+            })),
+            timer: document.getElementById('timer').textContent,
+            moves: moveCount,
+        };
+        localStorage.setItem('sudokuGameState', JSON.stringify(gameState));
+    }
 
-        clearInvalidCells();
-
-        const size = 9;
-        const boxSize = 3;
-
-        for (let i = 0; i < size; i++) {
-            const row = new Set();
-            const col = new Set();
-            const box = new Set();
-
-            for (let j = 0; j < size; j++) {
-                const rowIndex = i * size + j;
-                const colIndex = j * size + i;
-                const boxRowIndex = Math.floor(i / boxSize) * boxSize + Math.floor(j / boxSize);
-                const boxColIndex = (i % boxSize) * boxSize + (j % boxSize);
-                const boxIndex = boxRowIndex * size + boxColIndex;
-
-                if (gridValues[rowIndex] !== '0' && row.has(gridValues[rowIndex])) markInvalid(rowIndex);
-                row.add(gridValues[rowIndex]);
-
-                if (gridValues[colIndex] !== '0' && col.has(gridValues[colIndex])) markInvalid(colIndex);
-                col.add(gridValues[colIndex]);
-
-                if (gridValues[boxIndex] !== '0' && box.has(gridValues[boxIndex])) markInvalid(boxIndex);
-                box.add(gridValues[boxIndex]);
-            }
+    function loadGameState() {
+        const gameState = JSON.parse(localStorage.getItem('sudokuGameState'));
+        if (gameState) {
+            gameState.grid.forEach((cellState, index) => {
+                const cell = sudokuGrid.children[index];
+                cell.textContent = cellState.value;
+                cell.contentEditable = cellState.editable;
+                if (!cellState.editable) {
+                    cell.classList.add('initial');
+                }
+            });
+            document.getElementById('timer').textContent = gameState.timer;
+            moveCount = gameState.moves;
+            updateMoveCounter();
+            checkConflicts();
+            updateButtonStates();
         }
     }
 
-    function markInvalid(index) {
-        const cell = sudokuGrid.children[index];
-        cell.classList.add('invalid');
-    }
-
-    function clearInvalidCells() {
-        const cells = [...sudokuGrid.children];
-        cells.forEach(cell => cell.classList.remove('invalid'));
-    }
-
-    function checkSolution() {
-        const cells = [...sudokuGrid.children];
-        const gridValues = cells.map(cell => cell.textContent.trim() || '0');
-
-        if (isValidSudoku(gridValues)) {
-            alert('Congratulations! You solved the puzzle!');
-            clearInterval(timerInterval); // Stop the timer when solved
-        }
-    }
-
-    function isValidSudoku(gridValues) {
-        const size = 9;
-        const boxSize = 3;
-
-        for (let i = 0; i < size; i++) {
-            const row = new Set();
-            const col = new Set();
-            const box = new Set();
-
-            for (let j = 0; j < size; j++) {
-                const rowIndex = i * size + j;
-                const colIndex = j * size + i;
-                const boxRowIndex = Math.floor(i / boxSize) * boxSize + Math.floor(j / boxSize);
-                const boxColIndex = (i % boxSize) * boxSize + (j % boxSize);
-                const boxIndex = boxRowIndex * size + boxColIndex;
-
-                if (gridValues[rowIndex] !== '0' && row.has(gridValues[rowIndex])) return false;
-                row.add(gridValues[rowIndex]);
-
-                if (gridValues[colIndex] !== '0' && col.has(gridValues[colIndex])) return false;
-                col.add(gridValues[colIndex]);
-
-                if (gridValues[boxIndex] !== '0' && box.has(gridValues[boxIndex])) return false;
-                box.add(gridValues[boxIndex]);
-            }
-        }
-        return true;
+    function getCorrectValue(index) {
+        // Placeholder for getting the correct value (should be based on the solution)
+        // For demo purposes, we'll assume this is the correct value.
+        return '1'; // Replace with actual logic to retrieve correct value
     }
 
     function updateTimer() {
@@ -166,4 +171,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
     startTimer();
     generateSudoku();
+    loadGameState();
 });
