@@ -1,0 +1,48 @@
+/* styles.css */
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+}
+
+#sudoku-container {
+    width: 450px;
+    height: 450px;
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    grid-template-rows: repeat(9, 1fr);
+    border: 4px solid #333;
+    background-color: #fff;
+}
+
+#sudoku-container div {
+    border: 1px solid #ddd;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5em;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+#sudoku-container div:nth-child(3n) {
+    border-right: 2px solid #333;
+}
+
+#sudoku-container div:nth-child(27n) {
+    border-bottom: 2px solid #333;
+}
+
+#sudoku-container div:nth-child(3n+1) {
+    border-left: 2px solid #333;
+}
+
+#sudoku-container div:nth-child(81n-26),
+#sudoku-container div:nth-child(81n-8),
+#sudoku-container div:nth-child(81n+18) {
+    border-top: 2px solid #333;
+}
