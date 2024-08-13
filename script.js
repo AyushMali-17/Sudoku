@@ -1,4 +1,4 @@
-// script.js
+// script.js (continued)
 document.addEventListener('DOMContentLoaded', () => {
     const sudokuGrid = document.getElementById('sudoku-grid');
     let moveCount = 0;
@@ -11,6 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
         cell.contentEditable = true; // Allow user input
         cell.dataset.index = i; // Store the cell index
         cell.addEventListener('input', handleInput);
+        cell.addEventListener('focus', handleFocus);
+        cell.addEventListener('blur', handleBlur);
         sudokuGrid.appendChild(cell);
     }
 
@@ -24,36 +26,85 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             moveCount++;
             updateMoveCounter();
+            highlightSimilarNumbers(value);
+            checkConflicts();
             checkSolution();
         }
     }
 
-    function generateSudoku() {
-        const puzzle = createSudokuPuzzle();
-        puzzle.forEach((value, index) => {
-            const cell = sudokuGrid.children[index];
-            if (value !== 0) {
-                cell.textContent = value;
-                cell.contentEditable = false; // Lock the initial cells
-                cell.classList.add('initial');
+    function handleFocus(event) {
+        const value = event.target.textContent.trim();
+        if (value) {
+            highlightSimilarNumbers(value);
+        }
+    }
+
+    function handleBlur() {
+        clearHighlighting();
+    }
+
+    function highlightSimilarNumbers(value) {
+        clearHighlighting();
+        const cells = [...sudokuGrid.children];
+        cells.forEach(cell => {
+            if (cell.textContent.trim() === value) {
+                cell.style.backgroundColor = '#f39c12';
+                cell.style.color = '#ecf0f1';
             }
         });
     }
 
-    function createSudokuPuzzle() {
-        // Simple Sudoku puzzle generator (for demo purposes)
-        const basePuzzle = [
-            5, 3, 0, 0, 7, 0, 0, 0, 0,
-            6, 0, 0, 1, 9, 5, 0, 0, 0,
-            0, 9, 8, 0, 0, 0, 0, 6, 0,
-            8, 0, 0, 0, 6, 0, 0, 0, 3,
-            4, 0, 0, 8, 0, 3, 0, 0, 1,
-            7, 0, 0, 0, 2, 0, 0, 0, 6,
-            0, 6, 0, 0, 0, 0, 2, 8, 0,
-            0, 0, 0, 4, 1, 9, 0, 0, 5,
-            0, 0, 0, 0, 8, 0, 0, 7, 9,
-        ];
-        return basePuzzle;
+    function clearHighlighting() {
+        const cells = [...sudokuGrid.children];
+        cells.forEach(cell => {
+            if (!cell.classList.contains('initial')) {
+                cell.style.backgroundColor = '';
+                cell.style.color = '#2c3e50';
+            }
+        });
+    }
+
+    function checkConflicts() {
+        const cells = [...sudokuGrid.children];
+        const gridValues = cells.map(cell => cell.textContent.trim() || '0');
+
+        clearInvalidCells();
+
+        const size = 9;
+        const boxSize = 3;
+
+        for (let i = 0; i < size; i++) {
+            const row = new Set();
+            const col = new Set();
+            const box = new Set();
+
+            for (let j = 0; j < size; j++) {
+                const rowIndex = i * size + j;
+                const colIndex = j * size + i;
+                const boxRowIndex = Math.floor(i / boxSize) * boxSize + Math.floor(j / boxSize);
+                const boxColIndex = (i % boxSize) * boxSize + (j % boxSize);
+                const boxIndex = boxRowIndex * size + boxColIndex;
+
+                if (gridValues[rowIndex] !== '0' && row.has(gridValues[rowIndex])) markInvalid(rowIndex);
+                row.add(gridValues[rowIndex]);
+
+                if (gridValues[colIndex] !== '0' && col.has(gridValues[colIndex])) markInvalid(colIndex);
+                col.add(gridValues[colIndex]);
+
+                if (gridValues[boxIndex] !== '0' && box.has(gridValues[boxIndex])) markInvalid(boxIndex);
+                box.add(gridValues[boxIndex]);
+            }
+        }
+    }
+
+    function markInvalid(index) {
+        const cell = sudokuGrid.children[index];
+        cell.classList.add('invalid');
+    }
+
+    function clearInvalidCells() {
+        const cells = [...sudokuGrid.children];
+        cells.forEach(cell => cell.classList.remove('invalid'));
     }
 
     function checkSolution() {
@@ -76,20 +127,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const box = new Set();
 
             for (let j = 0; j < size; j++) {
-                // Check rows
                 const rowIndex = i * size + j;
-                if (gridValues[rowIndex] !== '0' && row.has(gridValues[rowIndex])) return false;
-                row.add(gridValues[rowIndex]);
-
-                // Check columns
                 const colIndex = j * size + i;
-                if (gridValues[colIndex] !== '0' && col.has(gridValues[colIndex])) return false;
-                col.add(gridValues[colIndex]);
-
-                // Check 3x3 boxes
                 const boxRowIndex = Math.floor(i / boxSize) * boxSize + Math.floor(j / boxSize);
                 const boxColIndex = (i % boxSize) * boxSize + (j % boxSize);
                 const boxIndex = boxRowIndex * size + boxColIndex;
+
+                if (gridValues[rowIndex] !== '0' && row.has(gridValues[rowIndex])) return false;
+                row.add(gridValues[rowIndex]);
+
+                if (gridValues[colIndex] !== '0' && col.has(gridValues[colIndex])) return false;
+                col.add(gridValues[colIndex]);
+
                 if (gridValues[boxIndex] !== '0' && box.has(gridValues[boxIndex])) return false;
                 box.add(gridValues[boxIndex]);
             }
