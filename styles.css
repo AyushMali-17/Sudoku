@@ -11,15 +11,23 @@ body {
 
 #sudoku-container {
     width: 450px;
-    height: 450px;
-    display: grid;
-    grid-template-columns: repeat(9, 1fr);
-    grid-template-rows: repeat(9, 1fr);
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     border: 4px solid #333;
     background-color: #fff;
 }
 
-#sudoku-container div {
+#sudoku-grid {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    grid-template-rows: repeat(9, 1fr);
+    width: 100%;
+    aspect-ratio: 1;
+}
+
+#sudoku-grid div {
     border: 1px solid #ddd;
     display: flex;
     justify-content: center;
@@ -29,20 +37,30 @@ body {
     cursor: pointer;
 }
 
-#sudoku-container div:nth-child(3n) {
+#sudoku-grid div:nth-child(3n) {
     border-right: 2px solid #333;
 }
 
-#sudoku-container div:nth-child(27n) {
+#sudoku-grid div:nth-child(27n) {
     border-bottom: 2px solid #333;
 }
 
-#sudoku-container div:nth-child(3n+1) {
+#sudoku-grid div:nth-child(3n+1) {
     border-left: 2px solid #333;
 }
 
-#sudoku-container div:nth-child(81n-26),
-#sudoku-container div:nth-child(81n-8),
-#sudoku-container div:nth-child(81n+18) {
+#sudoku-grid div:nth-child(81n-26),
+#sudoku-grid div:nth-child(81n-8),
+#sudoku-grid div:nth-child(81n+18) {
     border-top: 2px solid #333;
+}
+
+#game-info {
+    margin-top: 10px;
+    text-align: center;
+}
+
+#timer, #move-counter {
+    font-size: 1.2em;
+    font-weight: bold;
 }
