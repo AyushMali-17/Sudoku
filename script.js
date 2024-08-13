@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const undoButton = document.getElementById('undo-button');
     const redoButton = document.getElementById('redo-button');
     const hintButton = document.getElementById('hint-button');
+    const darkModeCheckbox = document.getElementById('dark-mode-checkbox');
 
     let moveCount = 0;
     let timerInterval;
@@ -11,6 +12,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const undoStack = [];
     const redoStack = [];
+
+    // Load dark mode preference
+    const isDarkMode = localStorage.getItem('darkMode') === 'true';
+    if (isDarkMode) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        darkModeCheckbox.checked = true;
+    }
+
+    darkModeCheckbox.addEventListener('change', toggleDarkMode);
+
+    function toggleDarkMode() {
+        if (darkModeCheckbox.checked) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            localStorage.setItem('darkMode', 'true');
+        } else {
+            document.documentElement.setAttribute('data-theme', 'light');
+            localStorage.setItem('darkMode', 'false');
+        }
+    }
 
     // Create the 9x9 grid elements
     for (let i = 0; i < 81; i++) {
